@@ -11,12 +11,11 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
-/flowkube
+/mutatingflow
 go.sum
 .idea
 
 # Local testing
 key.pem
 cert.pem
-alerts.yaml
 webhook.yaml
