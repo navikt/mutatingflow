@@ -208,7 +208,7 @@ func addContainerVolumeMounts(volumeMounts []corev1.VolumeMount) []corev1.Volume
 func mutatePodSpec(spec corev1.PodSpec) corev1.PodSpec {
 	container := spec.Containers[0]
 	container.VolumeMounts = append(container.VolumeMounts, addContainerVolumeMounts(container.VolumeMounts)...)
-	container.Env = append(container.Env, addEnv(container.Env))
+	container.Env = append(container.Env, addEnv(container.Env)...)
 	spec.Containers[0] = container
 	spec.InitContainers = append(spec.InitContainers, addVaultContainer(spec.InitContainers)...)
 	spec.Volumes = append(spec.Volumes, addSpecVolumes(spec.Volumes)...)
