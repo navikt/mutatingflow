@@ -64,6 +64,7 @@ func hasVolume(name string, volumes []corev1.Volume) bool {
 
 func addSpecVolumes(volumes []corev1.Volume) []corev1.Volume {
 	var missingVolumes []corev1.Volume
+
 	if !hasVolume("vault-secrets", volumes) {
 		missingVolumes = append(missingVolumes,
 			corev1.Volume{
@@ -113,7 +114,7 @@ func addVaultContainer(initContainers []corev1.Container) []corev1.Container {
 				},
 				{
 					Name:  "VKS_KV_PATH",
-					Value: "/kv/preprod/fss/dataverk/default",
+					Value: "/kv/preprod/fss/dataverk/dataverk",
 				},
 				{
 					Name:  "VKS_VAULT_ROLE",
@@ -134,28 +135,42 @@ func addVaultContainer(initContainers []corev1.Container) []corev1.Container {
 	}
 }
 
-func addContainerVolumeMounts(volumeMounts []corev1.VolumeMount) []corev1.VolumeMount {
-	var missingVolumeMounts []corev1.VolumeMount
+func hasVolumeMount(name string, volumeMounts []corev1.VolumeMount) bool {
 	for _, volumeMount := range volumeMounts {
-		if volumeMount.Name == "ca-bundle" {
-			return missingVolumeMounts
+		if volumeMount.Name == name {
+			return true
 		}
 	}
+	return false
+}
 
-	for _, path := range certFiles {
-		missingVolumeMounts = append(missingVolumeMounts, corev1.VolumeMount{
-			Name:      "ca-bundle",
-			MountPath: path,
-			SubPath:   "ca-bundle.pem",
-		})
+func addContainerVolumeMounts(volumeMounts []corev1.VolumeMount) []corev1.VolumeMount {
+	var missingVolumeMounts []corev1.VolumeMount
+
+	if !hasVolumeMount("vault-secrets", volumeMounts) {
+		missingVolumeMounts = append(missingVolumeMounts,
+			corev1.VolumeMount{
+				Name:
+				"vault-secrets",
+				MountPath: "/var/run/secrets/nais.io/vault",
+			})
 	}
 
-	missingVolumeMounts = append(missingVolumeMounts, corev1.VolumeMount{
-		Name:      "ca-bundle",
-		MountPath: "/etc/ssl/certs/java/cacerts",
-		SubPath:   "ca-bundle.jks",
-	})
+	if !hasVolumeMount("ca-bundle", volumeMounts) {
+		for _, path := range certFiles {
+			missingVolumeMounts = append(missingVolumeMounts, corev1.VolumeMount{
+				Name:      "ca-bundle",
+				MountPath: path,
+				SubPath:   "ca-bundle.pem",
+			})
+		}
 
+		missingVolumeMounts = append(missingVolumeMounts, corev1.VolumeMount{
+			Name:      "ca-bundle",
+			MountPath: "/etc/ssl/certs/java/cacerts",
+			SubPath:   "ca-bundle.jks",
+		})
+	}
 	return missingVolumeMounts
 }
 
