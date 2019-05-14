@@ -4,9 +4,9 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"github.com/navikt/mutatingflow/pkg/metrics"
 	"net/http"
 	"os"
-	"mutatingflow/pkg/metrics"
 	"time"
 
 	log "github.com/sirupsen/logrus"

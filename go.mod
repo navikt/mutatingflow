@@ -1,4 +1,4 @@
-module mutatingflow
+module github.com/navikt/mutatingflow
 
 go 1.12
 
