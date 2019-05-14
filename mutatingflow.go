@@ -135,6 +135,37 @@ func addVaultContainer(initContainers []corev1.Container) []corev1.Container {
 	}
 }
 
+func hasEnv(name string, env []corev1.EnvVar)  bool {
+	for _, env := range env {
+		if env.Name == name {
+			return true
+		}
+	}
+
+	return false
+}
+
+func addEnv(env []corev1.EnvVar) []corev1.EnvVar {
+	var missingEnv []corev1.EnvVar
+
+	if !hasEnv("REQUESTS_CA_BUNDLE", env) {
+		missingEnv = append(missingEnv,
+			corev1.EnvVar{
+				Name: "REQUESTS_CA_BUNDLE",
+				Value: "/etc/pki/tls/certs/ca-bundle.crt",
+			})
+	}
+
+	if !hasEnv("SECRETS_FROM_FILES", env) {
+		missingEnv = append(missingEnv,
+			corev1.EnvVar{
+				Name: "SECRETS_FROM_FILES",
+				Value: "true",
+			})
+	}
+	return []corev1.EnvVar{}
+}
+
 func hasVolumeMount(name string, volumeMounts []corev1.VolumeMount) bool {
 	for _, volumeMount := range volumeMounts {
 		if volumeMount.Name == name {
@@ -177,6 +208,7 @@ func addContainerVolumeMounts(volumeMounts []corev1.VolumeMount) []corev1.Volume
 func mutatePodSpec(spec corev1.PodSpec) corev1.PodSpec {
 	container := spec.Containers[0]
 	container.VolumeMounts = append(container.VolumeMounts, addContainerVolumeMounts(container.VolumeMounts)...)
+	container.Env = append(container.Env, addEnv(container.Env))
 	spec.Containers[0] = container
 	spec.InitContainers = append(spec.InitContainers, addVaultContainer(spec.InitContainers)...)
 	spec.Volumes = append(spec.Volumes, addSpecVolumes(spec.Volumes)...)
