@@ -32,6 +32,9 @@ func run() error {
 	flag.StringVar(&parameters.keyFile, "key", "./key.pem", "File containing the x509 private key to --tlsCertFile.")
 	flag.StringVar(&parameters.LogFormat, "log-format", "text", "Log format, either 'json' or 'text'")
 	flag.StringVar(&parameters.LogLevel, "log-level", "info", "Logging verbosity level")
+	flag.StringVar(&parameters.ServiceAccount, "serviceaccount", "dataverk", "Service account used for new notebooks")
+	flag.StringVar(&parameters.VaultKvPath, "vaultKvPath", "", "Path for Vault kv")
+	flag.StringVar(&parameters.VaultAuthPath, "vaultAuthPath", "", "Path for Vault Auth")
 	flag.Parse()
 
 	switch parameters.LogFormat {
@@ -61,6 +64,7 @@ func run() error {
 			Addr:      ":8443",
 			TLSConfig: &tls.Config{Certificates: []tls.Certificate{pair}},
 		},
+		parameters: parameters,
 	}
 
 	http.HandleFunc("/mutate", webhookServer.serve)

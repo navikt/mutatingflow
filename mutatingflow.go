@@ -37,14 +37,18 @@ const (
 )
 
 type WebhookServer struct {
-	server *http.Server
+	server     *http.Server
+	parameters Parameters
 }
 
 type Parameters struct {
-	certFile  string
-	keyFile   string
-	LogFormat string
-	LogLevel  string
+	certFile       string
+	keyFile        string
+	LogFormat      string
+	LogLevel       string
+	ServiceAccount string
+	VaultKvPath    string
+	VaultAuthPath  string
 }
 
 type patchOperation struct {
@@ -92,7 +96,7 @@ func addSpecVolumes(volumes []corev1.Volume) []corev1.Volume {
 	return missingVolumes
 }
 
-func addVaultContainer(initContainers []corev1.Container) []corev1.Container {
+func addVaultContainer(initContainers []corev1.Container, parameters Parameters) []corev1.Container {
 	for _, initContainer := range initContainers {
 		if initContainer.Name == "vks" {
 			return []corev1.Container{}
@@ -110,15 +114,15 @@ func addVaultContainer(initContainers []corev1.Container) []corev1.Container {
 				},
 				{
 					Name:  "VKS_AUTH_PATH",
-					Value: "/kubernetes/preprod/fss",
+					Value: parameters.VaultAuthPath,
 				},
 				{
 					Name:  "VKS_KV_PATH",
-					Value: "/kv/preprod/fss/dataverk/dataverk",
+					Value: parameters.VaultKvPath,
 				},
 				{
 					Name:  "VKS_VAULT_ROLE",
-					Value: "dataverk",
+					Value: parameters.ServiceAccount,
 				},
 				{
 					Name:  "VKS_SECRET_DEST_PATH",
@@ -135,7 +139,7 @@ func addVaultContainer(initContainers []corev1.Container) []corev1.Container {
 	}
 }
 
-func hasEnv(name string, env []corev1.EnvVar)  bool {
+func hasEnv(name string, env []corev1.EnvVar) bool {
 	for _, env := range env {
 		if env.Name == name {
 			return true
@@ -151,7 +155,7 @@ func addEnv(env []corev1.EnvVar) []corev1.EnvVar {
 	if !hasEnv("REQUESTS_CA_BUNDLE", env) {
 		missingEnv = append(missingEnv,
 			corev1.EnvVar{
-				Name: "REQUESTS_CA_BUNDLE",
+				Name:  "REQUESTS_CA_BUNDLE",
 				Value: "/etc/pki/tls/certs/ca-bundle.crt",
 			})
 	}
@@ -159,7 +163,7 @@ func addEnv(env []corev1.EnvVar) []corev1.EnvVar {
 	if !hasEnv("SECRETS_FROM_FILES", env) {
 		missingEnv = append(missingEnv,
 			corev1.EnvVar{
-				Name: "SECRETS_FROM_FILES",
+				Name:  "SECRETS_FROM_FILES",
 				Value: "true",
 			})
 	}
@@ -205,22 +209,22 @@ func addContainerVolumeMounts(volumeMounts []corev1.VolumeMount) []corev1.Volume
 	return missingVolumeMounts
 }
 
-func mutatePodSpec(spec corev1.PodSpec) corev1.PodSpec {
+func mutatePodSpec(spec corev1.PodSpec, parameters Parameters) corev1.PodSpec {
 	container := spec.Containers[0]
 	container.VolumeMounts = append(container.VolumeMounts, addContainerVolumeMounts(container.VolumeMounts)...)
 	container.Env = append(container.Env, addEnv(container.Env)...)
 	spec.Containers[0] = container
-	spec.InitContainers = append(spec.InitContainers, addVaultContainer(spec.InitContainers)...)
+	spec.InitContainers = append(spec.InitContainers, addVaultContainer(spec.InitContainers, parameters)...)
 	spec.Volumes = append(spec.Volumes, addSpecVolumes(spec.Volumes)...)
-	spec.ServiceAccountName = "dataverk"
+	spec.ServiceAccountName = parameters.ServiceAccount
 	return spec
 }
 
-func updatePodTemplate(spec corev1.PodSpec) patchOperation {
+func updatePodTemplate(spec corev1.PodSpec, parameters Parameters) patchOperation {
 	return patchOperation{
 		Op:    "add",
 		Path:  "/spec/template/spec",
-		Value: mutatePodSpec(spec),
+		Value: mutatePodSpec(spec, parameters),
 	}
 }
 
@@ -243,9 +247,9 @@ func updateAnnotation(target map[string]string) patchOperation {
 	}
 }
 
-func createPatch(notebook *v1alpha1.Notebook) ([]byte, error) {
+func createPatch(notebook *v1alpha1.Notebook, parameters Parameters) ([]byte, error) {
 	var patch []patchOperation
-	patch = append(patch, updatePodTemplate(notebook.Spec.Template.Spec))
+	patch = append(patch, updatePodTemplate(notebook.Spec.Template.Spec, parameters))
 	patch = append(patch, updateAnnotation(notebook.Annotations))
 	return json.Marshal(patch)
 }
@@ -261,7 +265,7 @@ func mutationRequired(metadata *metav1.ObjectMeta) bool {
 	log.Info(status)
 	required := true
 	if strings.ToLower(status) == "injected" {
-		required = false;
+		required = false
 	}
 
 	log.Infof("Mutation policy for %v/%v: status: %q required:%v", metadata.Namespace, metadata.Name, status, required)
@@ -291,7 +295,7 @@ func (server *WebhookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.Admiss
 		}
 	}
 
-	patchBytes, err := createPatch(&notebook)
+	patchBytes, err := createPatch(&notebook, server.parameters)
 	if err != nil {
 		return &v1beta1.AdmissionResponse{
 			Result: &metav1.Status{
