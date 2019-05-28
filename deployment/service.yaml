@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mutatingflow
+spec:
+  ports:
+  - name: https
+    port: 443
+    protocol: TCP
+    targetPort: https
+  selector:
+    app: mutatingflow
+  type: ClusterIP

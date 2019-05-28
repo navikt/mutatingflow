@@ -1,0 +1,58 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mutatingflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mutatingflow
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+      labels:
+        app: mutatingflow
+        team: dataverk
+    spec:
+      containers:
+      - name: mutatingflow
+        image: $image
+        imagePullPolicy: Always
+        command:
+          - /app/mutatingflow
+          - --log-level
+          - info
+          - --log-format
+          - json
+          - --cert
+          - /etc/mutatingflow/tls/tls.crt
+          - --key
+          - /etc/mutatingflow/tls/tls.key
+          - --serviceaccount
+          - $namespace
+          - --vaultKvPath
+          - /kv/prod/fss/$app/$namespace
+          - --vaultAuthPath
+          - /kubernetes/$clus/ter
+        ports:
+          - name: https
+            containerPort: 8443
+          - name: metrics
+            containerPort: 8080
+        livenessProbe:
+          httpGet:
+            path: /isAlive
+            port: metrics
+          initialDelaySeconds: 3
+          periodSeconds: 15
+        volumeMounts:
+        - mountPath: /etc/mutatingflow/tls
+          name: mutatingflow
+      volumes:
+      - secret:
+          secretName: mutatingflow
+        name: mutatingflow
