@@ -37,7 +37,7 @@ jobs:
           command: docker load -i /tmp/workspace/docker-image.tar
       - run:
           name: Login to Dockerhub
-          command: docker login -u "$DOCKER_USER" -p "$DOCKER_PASSWORD"
+          command: docker login -u "$DOCKER_LOGIN" -p "$DOCKER_PASSWORD"
       - run:
           name: Push Docker container
           command: |
