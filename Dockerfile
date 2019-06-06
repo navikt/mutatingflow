@@ -14,7 +14,7 @@ RUN go build -a -installsuffix cgo -o mutatingflow
 FROM alpine:3.9
 RUN apk add --no-cache ca-certificates
 WORKDIR /app
-COPY --from=builder mutatingflow /app/.
+COPY --from=builder /src/mutatingflow /app/.
 EXPOSE 8080
 EXPOSE 8443
 CMD ["/app/mutatingflow"]
