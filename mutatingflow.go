@@ -30,6 +30,14 @@ var (
 		"/etc/pki/tls/cacert.pem",                           // OpenELEC
 		"/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem", // CentOS/RHEL 7
 	}
+	envs = map[string]string{
+		"REQUESTS_CA_BUNDLE":          "/etc/pki/tls/certs/ca-bundle.crt",
+		"DATAVERK_SECRETS_FROM_FILES": "True",
+		"DATAVERK_BUCKET_ENDPOINT":    "https://dataverk-s3-api.nais.preprod.local",
+		"NO_PROXY":                    "localhost,127.0.0.1,10.254.0.1,.local,.adeo.no,.nav.no,.aetat.no,.devillo.no,.oera.no,.nais.io",
+		"HTTP_PROXY":                  "http://webproxy.nais:8088",
+		"HTTPS_PROXY":                 "http://webproxy.nais:8088",
+	}
 )
 
 const (
@@ -152,20 +160,14 @@ func hasEnv(name string, env []corev1.EnvVar) bool {
 func addEnv(env []corev1.EnvVar) []corev1.EnvVar {
 	var missingEnv []corev1.EnvVar
 
-	if !hasEnv("REQUESTS_CA_BUNDLE", env) {
-		missingEnv = append(missingEnv,
-			corev1.EnvVar{
-				Name:  "REQUESTS_CA_BUNDLE",
-				Value: "/etc/pki/tls/certs/ca-bundle.crt",
-			})
-	}
-
-	if !hasEnv("SECRETS_FROM_FILES", env) {
-		missingEnv = append(missingEnv,
-			corev1.EnvVar{
-				Name:  "SECRETS_FROM_FILES",
-				Value: "true",
-			})
+	for key, value := range envs {
+		if !hasEnv(key, env) {
+			missingEnv = append(missingEnv,
+				corev1.EnvVar{
+					Name:  key,
+					Value: value,
+				})
+		}
 	}
 	return []corev1.EnvVar{}
 }
