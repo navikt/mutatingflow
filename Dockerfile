@@ -9,7 +9,6 @@ WORKDIR /src
 
 RUN rm -f go.sum
 RUN go get
-RUN go test ./...
 RUN go build -a -installsuffix cgo -o mutatingflow
 
 FROM alpine:3.9
