@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"github.com/navikt/mutatingflow/pkg/commons"
 	"github.com/navikt/mutatingflow/pkg/metrics"
 	"net/http"
 	"os"
@@ -26,10 +27,10 @@ func jsonFormatter() log.Formatter {
 }
 
 func run() error {
-	var parameters Parameters
+	var parameters commons.Parameters
 
-	flag.StringVar(&parameters.certFile, "cert", "./cert.pem", "File containing the x509 Certificate for HTTPS.")
-	flag.StringVar(&parameters.keyFile, "key", "./key.pem", "File containing the x509 private key to --tlsCertFile.")
+	flag.StringVar(&parameters.CertFile, "cert", "./cert.pem", "File containing the x509 Certificate for HTTPS.")
+	flag.StringVar(&parameters.KeyFile, "key", "./key.pem", "File containing the x509 private key to --tlsCertFile.")
 	flag.StringVar(&parameters.LogFormat, "log-format", "text", "Log format, either 'json' or 'text'")
 	flag.StringVar(&parameters.LogLevel, "log-level", "info", "Logging verbosity level")
 	flag.StringVar(&parameters.ServiceAccount, "serviceaccount", "dataverk", "Service account used for new notebooks")
@@ -52,7 +53,7 @@ func run() error {
 	}
 	log.SetLevel(logLevel)
 
-	pair, err := tls.LoadX509KeyPair(parameters.certFile, parameters.keyFile)
+	pair, err := tls.LoadX509KeyPair(parameters.CertFile, parameters.KeyFile)
 	if err != nil {
 		return fmt.Errorf("failed to load key pair: %v", err)
 	}
