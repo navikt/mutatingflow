@@ -23,9 +23,6 @@ setup-local:
 local:
 	./mutatingflow --cert ./cert.pem --key ./key.pem
 
-codegen-crd:
-	${ROOT_DIR}/codegen/update-codegen.sh
-
 docker:
 	docker build -t navikt/mutatingflow:latest -t navikt/mutatingflow:${VERSION} .
 	docker push navikt/mutatingflow:latest
