@@ -9,10 +9,12 @@ Foreløpig er hele prosessen med utvikling, release, og deployment manuelt. Nede
 ## Development and creating new release
 
 1. Code code code
-2. `make codegen-crd`
-   * Kan hoppes over hvis man ikke har oppdatert notebook apiet
-3. `make release docker`
-4. Se *Deploy Mutatingflow*
+2. `make release docker`
+3. Se *Deploy Mutatingflow*
+
+### Oppdatering av Notebooks apiet
+
+Vi henter Notebooks (pkg/apis/notebook/v1alpha/types.go) fra [Kubeflow]()-gitrepo'et. Vi trenger ikke noe kodegenerering, da vi kun er interresert i struct'en til Notebooks.
 
 
 ## Deploy Mutatingflow
@@ -64,9 +66,9 @@ PS: Follow [self-signed-certificate-with-custom-ca.md](https://gist.github.com/f
             servicePort: 80
           path: /
   ```
-4. Oppgradere `ml-pipeline-persistenceagent` til siste versjon
+4. Oppgradere `ml-pipeline-persistenceagent` til siste versjon (testet med `0.1.21`)
    * Fikser feil med bruk av custom domain
-5. Oppgradere `jupyter-web-app` til siste versjon
+5. Oppgradere `jupyter-web-app` til siste versjon (testet med `edbeedb`)
    * Lar oss bruke dropdown for valg av namespace
 6. Installer ca-bundle
    * Kopier fra et namespace som allerede har ca-bundle configmap
