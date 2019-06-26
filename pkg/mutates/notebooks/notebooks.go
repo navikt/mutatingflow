@@ -3,6 +3,7 @@ package notebooks
 import (
 	"encoding/json"
 	"github.com/navikt/mutatingflow/pkg/commons"
+	"github.com/navikt/mutatingflow/pkg/vault"
 	"k8s.io/api/admission/v1beta1"
 	"strings"
 
@@ -12,101 +13,24 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var (
-	notebookEnvs = map[string]string{
-		"DATAVERK_SECRETS_FROM_FILES": "True",
-		"DATAVERK_BUCKET_ENDPOINT":    "https://dataverk-s3-api.nais.adeo.no",
-	}
-)
-
-func addVaultVolume(volumes []corev1.Volume) corev1.Volume {
-	if !commons.HasVolume("vault-secrets", volumes) {
-		return corev1.Volume{
-				Name: "vault-secrets",
-				VolumeSource: corev1.VolumeSource{
-					EmptyDir: &corev1.EmptyDirVolumeSource{
-						Medium: corev1.StorageMediumMemory,
-					},
-				},
-			}
-	}
-
-	return corev1.Volume{}
-}
-
-func addVaultContainer(initContainers []corev1.Container, parameters commons.Parameters) []corev1.Container {
-	for _, initContainer := range initContainers {
-		if initContainer.Name == "vks" {
-			return []corev1.Container{}
-		}
-	}
-
-	return []corev1.Container{
-		{
-			Image: "navikt/vks:38",
-			Name:  "vks",
-			Env: []corev1.EnvVar{
-				{
-					Name:  "VKS_VAULT_ADDR",
-					Value: "https://vault.adeo.no",
-				},
-				{
-					Name:  "VKS_AUTH_PATH",
-					Value: parameters.VaultAuthPath,
-				},
-				{
-					Name:  "VKS_KV_PATH",
-					Value: parameters.VaultKvPath,
-				},
-				{
-					Name:  "VKS_VAULT_ROLE",
-					Value: parameters.ServiceAccount,
-				},
-				{
-					Name:  "VKS_SECRET_DEST_PATH",
-					Value: "/var/run/secrets/nais.io/vault",
-				},
-			},
-			VolumeMounts: []corev1.VolumeMount{
-				{
-					Name:      "vault-secrets",
-					MountPath: "/var/run/secrets/nais.io/vault",
-				},
-			},
-		},
-	}
-}
-
-func addContainerVolumeMounts(volumeMounts []corev1.VolumeMount) []corev1.VolumeMount {
-	var missingVolumeMounts []corev1.VolumeMount
-
-	if !commons.HasVolumeMount("vault-secrets", volumeMounts) {
-		missingVolumeMounts = append(missingVolumeMounts,
-			corev1.VolumeMount{
-				Name:
-				"vault-secrets",
-				MountPath: "/var/run/secrets/nais.io/vault",
-			})
-	}
-
-	return missingVolumeMounts
-}
-
 func mutatePodSpec(spec corev1.PodSpec, parameters commons.Parameters) corev1.PodSpec {
-	container := spec.Containers[0]
-	container.VolumeMounts = append(container.VolumeMounts, addContainerVolumeMounts(container.VolumeMounts)...)
-	container.VolumeMounts = append(container.VolumeMounts, commons.AddCaBundleVolumeMounts(container.VolumeMounts)...)
-	spec.Volumes = append(spec.Volumes, commons.GetCaBundleVolumes())
-	container.Env = append(container.Env, commons.AddEnvs(container.Env, notebookEnvs)...)
-	container.Env = append(container.Env, commons.AddEnvs(container.Env, commons.Envs)...)
-	spec.Containers[0] = container
-	spec.InitContainers = append(spec.InitContainers, addVaultContainer(spec.InitContainers, parameters)...)
-	spec.Volumes = append(spec.Volumes, addVaultVolume(spec.Volumes))
 	spec.ServiceAccountName = parameters.ServiceAccount
+	container := spec.Containers[0]
+
+	spec.InitContainers = append(spec.InitContainers, vault.GetInitContainer(parameters))
+	spec.Volumes = append(spec.Volumes, vault.GetVolume())
+	container.VolumeMounts = append(container.VolumeMounts, vault.GetVolumeMount())
+
+	spec.Volumes = append(spec.Volumes, commons.GetCaBundleVolume())
+	container.VolumeMounts = append(container.VolumeMounts, commons.GetCaBundleVolumeMounts()...)
+
+	container.Env = append(container.Env, commons.GetProxyEnvVars()...)
+	container.Env = append(container.Env, commons.GetDataverkEnvVars()...)
+	spec.Containers[0] = container
 	return spec
 }
 
-func updatePodTemplate(spec corev1.PodSpec, parameters commons.Parameters) commons.PatchOperation {
+func patchPodTemplate(spec corev1.PodSpec, parameters commons.Parameters) commons.PatchOperation {
 	return commons.PatchOperation{
 		Op:    "add",
 		Path:  "/spec/template/spec",
@@ -116,7 +40,7 @@ func updatePodTemplate(spec corev1.PodSpec, parameters commons.Parameters) commo
 
 func createPatch(notebook *v1alpha1.Notebook, parameters commons.Parameters) ([]byte, error) {
 	var patch []commons.PatchOperation
-	patch = append(patch, updatePodTemplate(notebook.Spec.Template.Spec, parameters))
+	patch = append(patch, patchPodTemplate(notebook.Spec.Template.Spec, parameters))
 	patch = append(patch, commons.PatchStatusAnnotation(notebook.Annotations))
 	return json.Marshal(patch)
 }

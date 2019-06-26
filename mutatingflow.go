@@ -33,7 +33,7 @@ func (server *WebhookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.Admiss
 	case "Notebook":
 		return notebooks.MutateNotebook(request, server.parameters)
 	case "Pod":
-		return pipelines.MutatePod(request)
+		return pipelines.MutatePod(request, server.parameters)
 	}
 
 	return &v1beta1.AdmissionResponse{

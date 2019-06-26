@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/navikt/mutatingflow/pkg/commons"
+	"github.com/navikt/mutatingflow/pkg/vault"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -17,44 +18,55 @@ var (
 	WorkflowArgoAnnotation = "workflows.argoproj.io/node-name"
 )
 
-func patchPodContainerEnvs(env []corev1.EnvVar, index int) commons.PatchOperation {
+func mutateContainer(container corev1.Container) corev1.Container {
+	container.VolumeMounts = append(container.VolumeMounts, commons.GetCaBundleVolumeMounts()...)
+	container.VolumeMounts = append(container.VolumeMounts, vault.GetVolumeMount())
+	container.Env = append(container.Env, commons.GetDataverkEnvVars()...)
+	container.Env = append(container.Env, commons.GetProxyEnvVars()...)
+	return container
+}
+
+func patchContainer(container corev1.Container, index int) commons.PatchOperation {
 	return commons.PatchOperation{
-		Op:    "add",
-		Path:  fmt.Sprintf("/spec/containers/%d/env", index),
-		Value: append(env, commons.AddEnvs(env, commons.Envs)...),
+		Op:    "replace",
+		Path:  fmt.Sprintf("/spec/containers/%d", index),
+		Value: mutateContainer(container),
 	}
 }
 
-func patchPodContainerVolumeMounts(mounts []corev1.VolumeMount, index int) commons.PatchOperation {
+func patchCaBundleVolumes(volumes []corev1.Volume) commons.PatchOperation {
+	path := "/spec/volumes"
+	if len(volumes) > 0 {
+		path += "/-"
+	}
 	return commons.PatchOperation{
 		Op:    "add",
-		Path:  fmt.Sprintf("/spec/containers/%d/volumeMounts", index),
-		Value: append(mounts, commons.AddCaBundleVolumeMounts(mounts)...),
+		Path:  path,
+		Value: commons.GetCaBundleVolume(),
 	}
 }
 
-func patchContainer(container corev1.Container, index int) []commons.PatchOperation {
+func patchVaultInitContainer(parameters commons.Parameters) []commons.PatchOperation {
 	return []commons.PatchOperation{
-		patchPodContainerEnvs(container.Env, index),
-		patchPodContainerVolumeMounts(container.VolumeMounts, index),
+		{
+			Op:    "add",
+			Path:  "/spec/volumes/-",
+			Value: vault.GetVolume(),
+		},
+		{
+			Op:    "add",
+			Path:  "/spec/initContainers",
+			Value: []corev1.Container{vault.GetInitContainer(parameters)},
+		},
 	}
 }
-
-func patchVolumes(spec corev1.PodSpec) commons.PatchOperation {
-	return commons.PatchOperation{
-		Op: "add",
-		Path: "/spec/volumes",
-		Value: append(spec.Volumes, commons.GetCaBundleVolumes()),
-	}
-}
-
-func createPatch(pod *corev1.Pod) ([]byte, error) {
+func createPatch(pod *corev1.Pod, parameters commons.Parameters) ([]byte, error) {
 	var patch []commons.PatchOperation
-
-	patch = append(patch, patchContainer(pod.Spec.Containers[0], 0)...)
-	patch = append(patch, patchContainer(pod.Spec.Containers[1], 1)...)
+	patch = append(patch, patchVaultInitContainer(parameters)...)
+	patch = append(patch, patchCaBundleVolumes(pod.Spec.Volumes))
+	patch = append(patch, patchContainer(pod.Spec.Containers[0], 0))
+	patch = append(patch, patchContainer(pod.Spec.Containers[1], 1))
 	patch = append(patch, commons.PatchStatusAnnotation(pod.Annotations))
-	patch = append(patch, patchVolumes(pod.Spec))
 	return json.Marshal(patch)
 }
 
@@ -78,7 +90,7 @@ func mutationRequired(metadata *metav1.ObjectMeta) bool {
 	return true
 }
 
-func MutatePod(request *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
+func MutatePod(request *v1beta1.AdmissionRequest, parameters commons.Parameters) *v1beta1.AdmissionResponse {
 	var pod corev1.Pod
 
 	err := json.Unmarshal(request.Object.Raw, &pod)
@@ -100,7 +112,7 @@ func MutatePod(request *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
 		}
 	}
 
-	patchBytes, err := createPatch(&pod)
+	patchBytes, err := createPatch(&pod, parameters)
 	if err != nil {
 		return &v1beta1.AdmissionResponse{
 			Result: &metav1.Status{
@@ -110,6 +122,7 @@ func MutatePod(request *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
 	}
 
 	log.Infof("Pod: Mutated")
+	log.Info(string(patchBytes))
 	return &v1beta1.AdmissionResponse{
 		Allowed: true,
 		Patch:   patchBytes,
