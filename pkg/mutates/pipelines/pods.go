@@ -46,7 +46,26 @@ func patchCaBundleVolumes(volumes []corev1.Volume) commons.PatchOperation {
 	}
 }
 
-func patchVaultInitContainer(parameters commons.Parameters) []commons.PatchOperation {
+func findPipelineRunnerToken(volumes []corev1.Volume) (corev1.VolumeMount, error) {
+	for _, volume := range volumes {
+		if strings.HasPrefix(volume.Name, "pipeline-runner-token-") {
+			return corev1.VolumeMount{
+				Name:      volume.Name,
+				MountPath: "/var/run/secrets/kubernetes.io/serviceaccount",
+				ReadOnly:  true,
+			}, nil
+		}
+	}
+
+	return corev1.VolumeMount{}, fmt.Errorf("can't find pipeline-runner-token")
+}
+
+func patchVaultInitContainer(podSpec corev1.PodSpec, parameters commons.Parameters) ([]commons.PatchOperation, error) {
+	pipelineTokenVolumeMount, err := findPipelineRunnerToken(podSpec.Volumes)
+	if err != nil {
+		return nil, err
+	}
+
 	return []commons.PatchOperation{
 		{
 			Op:    "add",
@@ -58,11 +77,22 @@ func patchVaultInitContainer(parameters commons.Parameters) []commons.PatchOpera
 			Path:  "/spec/initContainers",
 			Value: []corev1.Container{vault.GetInitContainer(parameters)},
 		},
-	}
+		{
+			Op:    "add",
+			Path:  "/spec/initContainers/0/volumeMounts/-",
+			Value: pipelineTokenVolumeMount,
+		},
+	}, nil
 }
+
 func createPatch(pod *corev1.Pod, parameters commons.Parameters) ([]byte, error) {
 	var patch []commons.PatchOperation
-	patch = append(patch, patchVaultInitContainer(parameters)...)
+	vaultPatches, err := patchVaultInitContainer(pod.Spec, parameters)
+	if err != nil {
+		return nil, err
+	}
+	patch = append(patch, vaultPatches...)
+
 	patch = append(patch, patchCaBundleVolumes(pod.Spec.Volumes))
 	patch = append(patch, patchContainer(pod.Spec.Containers[0], 0))
 	patch = append(patch, patchContainer(pod.Spec.Containers[1], 1))
