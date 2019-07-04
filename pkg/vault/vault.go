@@ -48,11 +48,6 @@ func GetInitContainer(parameters commons.Parameters) corev1.Container {
 				Name:      "vault-secrets",
 				MountPath: "/var/run/secrets/nais.io/vault",
 			},
-			{
-				Name:      "pipeline-runner-token-28dts",
-				MountPath: "/var/run/secrets/kubernetes.io/serviceaccount",
-				ReadOnly:  true,
-			},
 		},
 		SecurityContext: &corev1.SecurityContext{
 			AllowPrivilegeEscalation: &allowPrivilegeEscalation,
