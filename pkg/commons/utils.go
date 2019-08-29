@@ -23,6 +23,7 @@ var (
 		"DATAVERK_SECRETS_FROM_FILES": "True",
 		"DATAVERK_BUCKET_ENDPOINT":    "https://dataverk-s3-api.nais.adeo.no",
 		"REQUESTS_CA_BUNDLE":          "/etc/pki/tls/certs/ca-bundle.crt",
+		"SSL_CERT_FILE":               "/etc/pki/tls/certs/ca-bundle.crt",
 	}
 	proxyEnvs = map[string]string{
 		"NO_PROXY":    "localhost,127.0.0.1,10.254.0.1,.local,.adeo.no,.nav.no,.aetat.no,.devillo.no,.oera.no,.nais.io",
