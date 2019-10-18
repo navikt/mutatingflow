@@ -23,21 +23,30 @@ var (
 )
 
 type WebhookServer struct {
-	server     *http.Server
-	parameters commons.Parameters
+	server *http.Server
+	teams  []string
 }
 
 func (server *WebhookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 	request := ar.Request
+	if !commons.ExistsIn(request.Namespace, server.teams) {
+		return &v1beta1.AdmissionResponse{
+			Allowed: true,
+			Result: &metav1.Status{
+				Message: "resource not in namespace allowed for mutation",
+			},
+		}
+	}
+
 	switch request.Kind.Kind {
 	case "Notebook":
-		return notebooks.MutateNotebook(request, server.parameters)
+		return notebooks.MutateNotebook(request)
 	case "Pod":
-		return pipelines.MutatePod(request, server.parameters)
+		return pipelines.MutatePod(request)
 	}
 
 	return &v1beta1.AdmissionResponse{
-		Allowed: false,
+		Allowed: true,
 		Result: &metav1.Status{
 			Message: fmt.Sprintf("unknown resource: '%s'", ar.Kind),
 		},

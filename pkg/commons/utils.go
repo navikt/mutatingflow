@@ -37,9 +37,7 @@ type Parameters struct {
 	KeyFile        string
 	LogFormat      string
 	LogLevel       string
-	ServiceAccount string
-	VaultKvPath    string
-	VaultAuthPath  string
+	Teams          []string
 }
 
 type PatchOperation struct {
@@ -124,4 +122,13 @@ func GetCaBundleVolume() corev1.Volume {
 			},
 		},
 	}
+}
+
+func ExistsIn(target string, listOf []string) bool {
+	for _, v := range listOf {
+		if target == v {
+			return true
+		}
+	}
+	return false
 }
