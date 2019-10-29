@@ -1,7 +1,7 @@
 package vault
 
 import (
-	"github.com/navikt/mutatingflow/pkg/commons"
+	"fmt"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -16,10 +16,10 @@ func GetVolume() corev1.Volume {
 	}
 }
 
-func GetInitContainer(parameters commons.Parameters) corev1.Container {
+func GetInitContainer(team string) corev1.Container {
 	allowPrivilegeEscalation := false
 	return corev1.Container{
-		Image: "navikt/vks:38",
+		Image: "navikt/vks:46",
 		Name:  "vks",
 		Env: []corev1.EnvVar{
 			{
@@ -28,15 +28,15 @@ func GetInitContainer(parameters commons.Parameters) corev1.Container {
 			},
 			{
 				Name:  "VKS_AUTH_PATH",
-				Value: parameters.VaultAuthPath,
+				Value: "/kubernetes/prod/kubeflow",
 			},
 			{
 				Name:  "VKS_KV_PATH",
-				Value: parameters.VaultKvPath,
+				Value: fmt.Sprintf("/kv/prod/kubeflow/%[1]s/%[1]s", team),
 			},
 			{
 				Name:  "VKS_VAULT_ROLE",
-				Value: parameters.ServiceAccount,
+				Value: team,
 			},
 			{
 				Name:  "VKS_SECRET_DEST_PATH",

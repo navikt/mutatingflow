@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto/tls"
-	"flag"
 	"fmt"
 	"github.com/navikt/mutatingflow/pkg/commons"
 	"github.com/navikt/mutatingflow/pkg/metrics"
@@ -10,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	flag "github.com/spf13/pflag"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -33,9 +33,7 @@ func run() error {
 	flag.StringVar(&parameters.KeyFile, "key", "./key.pem", "File containing the x509 private key to --tlsCertFile.")
 	flag.StringVar(&parameters.LogFormat, "log-format", "text", "Log format, either 'json' or 'text'")
 	flag.StringVar(&parameters.LogLevel, "log-level", "info", "Logging verbosity level")
-	flag.StringVar(&parameters.ServiceAccount, "serviceaccount", "dataverk", "Service account used for new notebooks")
-	flag.StringVar(&parameters.VaultKvPath, "vaultKvPath", "", "Path for Vault kv")
-	flag.StringVar(&parameters.VaultAuthPath, "vaultAuthPath", "", "Path for Vault Auth")
+	flag.StringSliceVar(&parameters.Teams, "teams", []string{}, "List of teams separated with colon")
 	flag.Parse()
 
 	switch parameters.LogFormat {
@@ -65,7 +63,7 @@ func run() error {
 			Addr:      ":8443",
 			TLSConfig: &tls.Config{Certificates: []tls.Certificate{pair}},
 		},
-		parameters: parameters,
+		teams: parameters.Teams,
 	}
 
 	http.HandleFunc("/mutate", webhookServer.serve)

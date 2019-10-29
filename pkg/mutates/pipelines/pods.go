@@ -60,7 +60,7 @@ func findPipelineRunnerToken(volumes []corev1.Volume) (corev1.VolumeMount, error
 	return corev1.VolumeMount{}, fmt.Errorf("can't find pipeline-runner-token")
 }
 
-func patchVaultInitContainer(podSpec corev1.PodSpec, parameters commons.Parameters) ([]commons.PatchOperation, error) {
+func patchVaultInitContainer(podSpec corev1.PodSpec, team string) ([]commons.PatchOperation, error) {
 	pipelineTokenVolumeMount, err := findPipelineRunnerToken(podSpec.Volumes)
 	if err != nil {
 		return nil, err
@@ -75,7 +75,7 @@ func patchVaultInitContainer(podSpec corev1.PodSpec, parameters commons.Paramete
 		{
 			Op:    "add",
 			Path:  "/spec/initContainers",
-			Value: []corev1.Container{vault.GetInitContainer(parameters)},
+			Value: []corev1.Container{vault.GetInitContainer(team)},
 		},
 		{
 			Op:    "add",
@@ -85,9 +85,9 @@ func patchVaultInitContainer(podSpec corev1.PodSpec, parameters commons.Paramete
 	}, nil
 }
 
-func createPatch(pod *corev1.Pod, parameters commons.Parameters) ([]byte, error) {
+func createPatch(pod *corev1.Pod, team string) ([]byte, error) {
 	var patch []commons.PatchOperation
-	vaultPatches, err := patchVaultInitContainer(pod.Spec, parameters)
+	vaultPatches, err := patchVaultInitContainer(pod.Spec, team)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func mutationRequired(metadata *metav1.ObjectMeta) bool {
 	return true
 }
 
-func MutatePod(request *v1beta1.AdmissionRequest, parameters commons.Parameters) *v1beta1.AdmissionResponse {
+func MutatePod(request *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
 	var pod corev1.Pod
 
 	err := json.Unmarshal(request.Object.Raw, &pod)
@@ -142,7 +142,7 @@ func MutatePod(request *v1beta1.AdmissionRequest, parameters commons.Parameters)
 		}
 	}
 
-	patchBytes, err := createPatch(&pod, parameters)
+	patchBytes, err := createPatch(&pod, request.Namespace)
 	if err != nil {
 		return &v1beta1.AdmissionResponse{
 			Result: &metav1.Status{

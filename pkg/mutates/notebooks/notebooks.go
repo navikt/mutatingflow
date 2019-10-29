@@ -13,15 +13,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func mutatePodSpec(spec corev1.PodSpec, parameters commons.Parameters) corev1.PodSpec {
-	spec.ServiceAccountName = parameters.ServiceAccount
+func mutatePodSpec(spec corev1.PodSpec, team string) corev1.PodSpec {
 	container := spec.Containers[0]
 
-	spec.InitContainers = append(spec.InitContainers, vault.GetInitContainer(parameters))
+	spec.InitContainers = append(spec.InitContainers, vault.GetInitContainer(team))
 	spec.Volumes = append(spec.Volumes, vault.GetVolume())
 	container.VolumeMounts = append(container.VolumeMounts, vault.GetVolumeMount())
 
-	spec.Volumes = append(spec.Volumes, commons.GetCaBundleVolume())
+	spec.Volumes = append(spec.Volumes, commons.GetCaBundleVolume()...)
 	container.VolumeMounts = append(container.VolumeMounts, commons.GetCaBundleVolumeMounts()...)
 
 	container.Env = append(container.Env, commons.GetProxyEnvVars()...)
@@ -30,17 +29,17 @@ func mutatePodSpec(spec corev1.PodSpec, parameters commons.Parameters) corev1.Po
 	return spec
 }
 
-func patchPodTemplate(spec corev1.PodSpec, parameters commons.Parameters) commons.PatchOperation {
+func patchPodTemplate(spec corev1.PodSpec, team string) commons.PatchOperation {
 	return commons.PatchOperation{
 		Op:    "add",
 		Path:  "/spec/template/spec",
-		Value: mutatePodSpec(spec, parameters),
+		Value: mutatePodSpec(spec, team),
 	}
 }
 
-func createPatch(notebook *v1alpha1.Notebook, parameters commons.Parameters) ([]byte, error) {
+func createPatch(notebook *v1alpha1.Notebook, team string) ([]byte, error) {
 	var patch []commons.PatchOperation
-	patch = append(patch, patchPodTemplate(notebook.Spec.Template.Spec, parameters))
+	patch = append(patch, patchPodTemplate(notebook.Spec.Template.Spec, team))
 	patch = append(patch, commons.PatchStatusAnnotation(notebook.Annotations))
 	return json.Marshal(patch)
 }
@@ -60,7 +59,7 @@ func mutationRequired(metadata *metav1.ObjectMeta) bool {
 	return required
 }
 
-func MutateNotebook(request *v1beta1.AdmissionRequest, parameters commons.Parameters) *v1beta1.AdmissionResponse {
+func MutateNotebook(request *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
 	var notebook v1alpha1.Notebook
 
 	err := json.Unmarshal(request.Object.Raw, &notebook)
@@ -82,7 +81,7 @@ func MutateNotebook(request *v1beta1.AdmissionRequest, parameters commons.Parame
 		}
 	}
 
-	patchBytes, err := createPatch(&notebook, parameters)
+	patchBytes, err := createPatch(&notebook, request.Namespace)
 	if err != nil {
 		return &v1beta1.AdmissionResponse{
 			Result: &metav1.Status{
