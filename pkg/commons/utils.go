@@ -125,11 +125,11 @@ func GetCaBundleVolume() []corev1.Volume {
 		},
 		{
 			Name:
-			"ca-bundle-pem",
+			"ca-bundle-jsk",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "ca-bundle-pem",
+						Name: "ca-bundle-jks",
 					},
 				},
 			},
