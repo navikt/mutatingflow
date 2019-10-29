@@ -96,14 +96,14 @@ func GetCaBundleVolumeMounts() []corev1.VolumeMount {
 
 	for _, path := range certFiles {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
-			Name:      "ca-bundle",
+			Name:      "ca-bundle-pem",
 			MountPath: path,
 			SubPath:   "ca-bundle.pem",
 		})
 	}
 
 	volumeMounts = append(volumeMounts, corev1.VolumeMount{
-		Name:      "ca-bundle",
+		Name:      "ca-bundle-jks",
 		MountPath: "/etc/ssl/certs/java/cacerts",
 		SubPath:   "ca-bundle.jks",
 	})
@@ -111,13 +111,26 @@ func GetCaBundleVolumeMounts() []corev1.VolumeMount {
 	return volumeMounts
 }
 
-func GetCaBundleVolume() corev1.Volume {
-	return corev1.Volume{
-		Name: "ca-bundle",
-		VolumeSource: corev1.VolumeSource{
-			ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: "ca-bundle",
+func GetCaBundleVolume() []corev1.Volume {
+	return []corev1.Volume{
+		{
+			Name: "ca-bundle-pem",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: "ca-bundle-pem",
+					},
+				},
+			},
+		},
+		{
+			Name:
+			"ca-bundle-pem",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: "ca-bundle-pem",
+					},
 				},
 			},
 		},

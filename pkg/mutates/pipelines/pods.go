@@ -19,7 +19,7 @@ var (
 )
 
 func mutateContainer(container corev1.Container) corev1.Container {
-	//container.VolumeMounts = append(container.VolumeMounts, commons.GetCaBundleVolumeMounts()...)
+	container.VolumeMounts = append(container.VolumeMounts, commons.GetCaBundleVolumeMounts()...)
 	container.VolumeMounts = append(container.VolumeMounts, vault.GetVolumeMount())
 	container.Env = append(container.Env, commons.GetDataverkEnvVars()...)
 	container.Env = append(container.Env, commons.GetProxyEnvVars()...)
@@ -93,7 +93,7 @@ func createPatch(pod *corev1.Pod, team string) ([]byte, error) {
 	}
 	patch = append(patch, vaultPatches...)
 
-	//patch = append(patch, patchCaBundleVolumes(pod.Spec.Volumes))
+	patch = append(patch, patchCaBundleVolumes(pod.Spec.Volumes))
 	patch = append(patch, patchContainer(pod.Spec.Containers[0], 0))
 	patch = append(patch, patchContainer(pod.Spec.Containers[1], 1))
 	patch = append(patch, commons.PatchStatusAnnotation(pod.Annotations))
