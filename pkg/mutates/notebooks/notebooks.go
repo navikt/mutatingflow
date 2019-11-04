@@ -8,9 +8,9 @@ import (
 	"strings"
 
 	"github.com/navikt/mutatingflow/pkg/apis/notebook/v1alpha1"
-	"github.com/prometheus/common/log"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	log "github.com/sirupsen/logrus"
 )
 
 func mutatePodSpec(spec corev1.PodSpec, team string) corev1.PodSpec {
