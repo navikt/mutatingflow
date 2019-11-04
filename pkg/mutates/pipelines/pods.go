@@ -151,8 +151,7 @@ func MutatePod(request *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
 		}
 	}
 
-	log.Infof("Pod: Mutated")
-	log.Info(string(patchBytes))
+	log.Info("Pod: Mutated")
 	return &v1beta1.AdmissionResponse{
 		Allowed: true,
 		Patch:   patchBytes,
