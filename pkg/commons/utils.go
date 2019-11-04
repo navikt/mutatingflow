@@ -111,7 +111,7 @@ func GetCaBundleVolumeMounts() []corev1.VolumeMount {
 	return volumeMounts
 }
 
-func GetCaBundleVolume() []corev1.Volume {
+func GetCaBundleVolumes() []corev1.Volume {
 	return []corev1.Volume{
 		{
 			Name: "ca-bundle-pem",

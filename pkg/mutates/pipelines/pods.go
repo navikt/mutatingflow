@@ -34,16 +34,22 @@ func patchContainer(container corev1.Container, index int) commons.PatchOperatio
 	}
 }
 
-func patchCaBundleVolumes(volumes []corev1.Volume) commons.PatchOperation {
+func patchCaBundleVolumes(volumes []corev1.Volume) []commons.PatchOperation {
 	path := "/spec/volumes"
 	if len(volumes) > 0 {
 		path += "/-"
 	}
-	return commons.PatchOperation{
-		Op:    "add",
-		Path:  path,
-		Value: commons.GetCaBundleVolume(),
+
+	patches := []commons.PatchOperation{}
+	for _, volume := range commons.GetCaBundleVolumes() {
+		patch := commons.PatchOperation{
+			Op:    "add",
+			Path:  path,
+			Value: volume,
+		}
+		patches = append(patches, patch)
 	}
+	return patches
 }
 
 func findPipelineRunnerToken(volumes []corev1.Volume) (corev1.VolumeMount, error) {
@@ -93,7 +99,7 @@ func createPatch(pod *corev1.Pod, team string) ([]byte, error) {
 	}
 	patch = append(patch, vaultPatches...)
 
-	patch = append(patch, patchCaBundleVolumes(pod.Spec.Volumes))
+	patch = append(patch, patchCaBundleVolumes(pod.Spec.Volumes)...)
 	patch = append(patch, patchContainer(pod.Spec.Containers[0], 0))
 	patch = append(patch, patchContainer(pod.Spec.Containers[1], 1))
 	patch = append(patch, commons.PatchStatusAnnotation(pod.Annotations))
