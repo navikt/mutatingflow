@@ -20,9 +20,6 @@ func mutatePodSpec(spec corev1.PodSpec, team string) corev1.PodSpec {
 	spec.Volumes = append(spec.Volumes, vault.GetVolume())
 	container.VolumeMounts = append(container.VolumeMounts, vault.GetVolumeMount())
 
-	spec.Volumes = append(spec.Volumes, commons.GetCaBundleVolume()...)
-	container.VolumeMounts = append(container.VolumeMounts, commons.GetCaBundleVolumeMounts()...)
-
 	container.Env = append(container.Env, commons.GetProxyEnvVars()...)
 	container.Env = append(container.Env, commons.GetDataverkEnvVars()...)
 	spec.Containers[0] = container
