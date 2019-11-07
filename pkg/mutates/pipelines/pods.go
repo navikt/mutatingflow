@@ -91,6 +91,14 @@ func patchVaultInitContainer(podSpec corev1.PodSpec, team string) ([]commons.Pat
 	}, nil
 }
 
+func patchImagePullSecrets() commons.PatchOperation {
+	return commons.PatchOperation{
+		Op: "add",
+		Path: "/spec/imagePullSecrets",
+		Value: "gpr-credentials",
+	}
+}
+
 func createPatch(pod *corev1.Pod, team string) ([]byte, error) {
 	var patch []commons.PatchOperation
 	vaultPatches, err := patchVaultInitContainer(pod.Spec, team)
@@ -103,6 +111,7 @@ func createPatch(pod *corev1.Pod, team string) ([]byte, error) {
 	patch = append(patch, patchContainer(pod.Spec.Containers[0], 0))
 	patch = append(patch, patchContainer(pod.Spec.Containers[1], 1))
 	patch = append(patch, commons.PatchStatusAnnotation(pod.Annotations))
+	patch = append(patch, patchImagePullSecrets())
 	return json.Marshal(patch)
 }
 
