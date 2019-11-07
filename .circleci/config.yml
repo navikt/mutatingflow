@@ -29,7 +29,7 @@ jobs:
       - checkout
       - add_ssh_keys:
           fingerprints:
-            - "13:72:55:e3:07:7c:c7:7e:d6:cd:a2:2f:d2:8e:cb:b5"
+            - "ad:fe:23:25:43:7a:80:40:66:88:78:de:a1:8f:62:21"
       - attach_workspace:
           at: /tmp/workspace
       - run:
@@ -49,10 +49,10 @@ jobs:
           name: Deploy new version to Kubernetes
           command: |
             version=$(./version.sh)
-            naisyaml=$(mktemp -d)
-            git clone git@github.com:navikt/nais-yaml $naisyaml
-            cd $naisyaml
-            sed -E -i "s#image: navikt/mutatingflow:.+#image: navikt/mutatingflow:${version}#" vars/kubeflow/mutatingflow.yaml
+            tmpyaml=$(mktemp -d)
+            git clone git@github.com:navikt/kubeflow-yaml $tmpyaml
+            cd $tmpyaml
+            sed -E -i "s#image: navikt/mutatingflow:.+#image: navikt/mutatingflow:${version}#" vars/mutatingflow.yaml
             git add .
             git --no-pager diff --cached
             git commit -a -m "Bump Mutatingflow to version ${version}"
