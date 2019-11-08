@@ -93,9 +93,9 @@ func patchVaultInitContainer(podSpec corev1.PodSpec, team string) ([]commons.Pat
 
 func patchImagePullSecrets() commons.PatchOperation {
 	return commons.PatchOperation{
-		Op: "add",
-		Path: "/spec/imagePullSecrets",
-		Value: "gpr-credentials",
+		Op:    "add",
+		Path:  "/spec/imagePullSecrets",
+		Value: []corev1.LocalObjectReference{{Name: "gpr-credentials"}},
 	}
 }
 
