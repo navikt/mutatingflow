@@ -33,8 +33,6 @@ spec:
           - /etc/mutatingflow/tls/tls.crt
           - --key
           - /etc/mutatingflow/tls/tls.key
-          - --teams
-          - ${list,of,teams}
         ports:
           - name: https
             containerPort: 8443

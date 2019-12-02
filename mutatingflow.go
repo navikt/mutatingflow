@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/navikt/mutatingflow/pkg/commons"
 	"github.com/navikt/mutatingflow/pkg/mutates/notebooks"
 	"github.com/navikt/mutatingflow/pkg/mutates/pipelines"
 	"io/ioutil"
@@ -24,23 +23,14 @@ var (
 
 type WebhookServer struct {
 	server *http.Server
-	teams  []string
 }
 
 func (server *WebhookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 	request := ar.Request
-	if !commons.ExistsIn(request.Namespace, server.teams) {
-		return &v1beta1.AdmissionResponse{
-			Allowed: true,
-			Result: &metav1.Status{
-				Message: "resource not in namespace allowed for mutation",
-			},
-		}
-	}
 
 	switch request.Kind.Kind {
 	case "Notebook":
-		return notebooks.MutateNotebook(request)
+		return notebooks.MutateNotebook(*request)
 	case "Pod":
 		return pipelines.MutatePod(request)
 	}

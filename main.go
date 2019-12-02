@@ -33,7 +33,6 @@ func run() error {
 	flag.StringVar(&parameters.KeyFile, "key", "./key.pem", "File containing the x509 private key to --tlsCertFile.")
 	flag.StringVar(&parameters.LogFormat, "log-format", "text", "Log format, either 'json' or 'text'")
 	flag.StringVar(&parameters.LogLevel, "log-level", "info", "Logging verbosity level")
-	flag.StringSliceVar(&parameters.Teams, "teams", []string{}, "List of teams separated with colon")
 	flag.Parse()
 
 	switch parameters.LogFormat {
@@ -63,7 +62,6 @@ func run() error {
 			Addr:      ":8443",
 			TLSConfig: &tls.Config{Certificates: []tls.Certificate{pair}},
 		},
-		teams: parameters.Teams,
 	}
 
 	http.HandleFunc("/mutate", webhookServer.serve)
