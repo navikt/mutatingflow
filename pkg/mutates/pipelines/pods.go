@@ -2,6 +2,7 @@ package pipelines
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/navikt/mutatingflow/pkg/commons"
 	"github.com/navikt/mutatingflow/pkg/vault"
 	log "github.com/sirupsen/logrus"
@@ -14,6 +15,27 @@ var (
 	// workflowArgoAnnotation is the annotation we use to check if a pod is of the workflow-pipeline type
 	workflowArgoAnnotation = "workflows.argoproj.io/node-name"
 )
+
+func mutateContainer(container corev1.Container) corev1.Container {
+	container.VolumeMounts = append(container.VolumeMounts, vault.GetVolumeMount())
+	return container
+}
+
+func patchContainer(container corev1.Container, index int) commons.PatchOperation {
+	return commons.PatchOperation{
+		Op:    "replace",
+		Path:  fmt.Sprintf("/spec/containers/%d", index),
+		Value: mutateContainer(container),
+	}
+}
+
+func getMainContainer(containers []corev1.Container) (corev1.Container, int) {
+	for i:=0; i<len(containers); i++ {
+		if containers[i].Name == "main" {
+			return containers[i], i
+		}
+	}
+}
 
 func patchVaultInitContainer(team string) ([]commons.PatchOperation, error) {
 	return []commons.PatchOperation{
@@ -45,6 +67,10 @@ func createPatch(pod *corev1.Pod, team string) ([]byte, error) {
 		return nil, err
 	}
 	patch = append(patch, vaultPatches...)
+
+	mainContainer, index := getMainContainer(pod.Spec.Containers)
+
+	patch = append(patch, patchContainer(mainContainer, index))
 	patch = append(patch, patchImagePullSecrets())
 	patch = append(patch, commons.PatchStatusAnnotation(pod.Annotations))
 	return json.Marshal(patch)
