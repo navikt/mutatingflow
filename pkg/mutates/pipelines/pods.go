@@ -3,6 +3,7 @@ package pipelines
 import (
 	"encoding/json"
 	"github.com/navikt/mutatingflow/pkg/commons"
+	"github.com/navikt/mutatingflow/pkg/vault"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -14,6 +15,21 @@ var (
 	workflowArgoAnnotation = "workflows.argoproj.io/node-name"
 )
 
+func patchVaultInitContainer(team string) ([]commons.PatchOperation, error) {
+	return []commons.PatchOperation{
+		{
+			Op:    "add",
+			Path:  "/spec/volumes/-",
+			Value: vault.GetVolume(),
+		},
+		{
+			Op:    "add",
+			Path:  "/spec/initContainers",
+			Value: []corev1.Container{vault.GetInitContainer(team)},
+		},
+	}, nil
+}
+
 func patchImagePullSecrets() commons.PatchOperation {
 	return commons.PatchOperation{
 		Op:    "add",
@@ -24,6 +40,11 @@ func patchImagePullSecrets() commons.PatchOperation {
 
 func createPatch(pod *corev1.Pod, team string) ([]byte, error) {
 	var patch []commons.PatchOperation
+	vaultPatches, err := patchVaultInitContainer(team)
+	if err != nil {
+		return nil, err
+	}
+	patch = append(patch, vaultPatches...)
 	patch = append(patch, patchImagePullSecrets())
 	patch = append(patch, commons.PatchStatusAnnotation(pod.Annotations))
 	return json.Marshal(patch)
