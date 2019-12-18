@@ -2,6 +2,7 @@ package pipelines
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/navikt/mutatingflow/pkg/commons"
 	"github.com/navikt/mutatingflow/pkg/vault"
@@ -29,12 +30,13 @@ func patchContainer(container corev1.Container, index int) commons.PatchOperatio
 	}
 }
 
-func getMainContainer(containers []corev1.Container) (corev1.Container, int) {
+func getContainerByName(containers []corev1.Container, name string) (corev1.Container, int, error) {
 	for i:=0; i<len(containers); i++ {
-		if containers[i].Name == "main" {
-			return containers[i], i
+		if containers[i].Name == name {
+			return containers[i], i, nil
 		}
 	}
+	return corev1.Container{}, -1, errors.New("No container with name" + name)
 }
 
 func patchVaultInitContainer(team string) ([]commons.PatchOperation, error) {
@@ -68,9 +70,12 @@ func createPatch(pod *corev1.Pod, team string) ([]byte, error) {
 	}
 	patch = append(patch, vaultPatches...)
 
-	mainContainer, index := getMainContainer(pod.Spec.Containers)
-
+	mainContainer, index, err := getContainerByName(pod.Spec.Containers, "main")
+	if err != nil {
+		return nil, err
+	}
 	patch = append(patch, patchContainer(mainContainer, index))
+
 	patch = append(patch, patchImagePullSecrets())
 	patch = append(patch, commons.PatchStatusAnnotation(pod.Annotations))
 	return json.Marshal(patch)
