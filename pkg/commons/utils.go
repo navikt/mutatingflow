@@ -15,6 +15,7 @@ type Parameters struct {
 	KeyFile        string
 	LogFormat      string
 	LogLevel       string
+	Teams		   string
 }
 
 type PatchOperation struct {
