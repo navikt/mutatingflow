@@ -2,7 +2,10 @@ package pipelines
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/navikt/mutatingflow/pkg/commons"
+	"github.com/navikt/mutatingflow/pkg/vault"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -14,6 +17,43 @@ var (
 	workflowArgoAnnotation = "workflows.argoproj.io/node-name"
 )
 
+func mutateContainer(container corev1.Container) corev1.Container {
+	container.VolumeMounts = append(container.VolumeMounts, vault.GetVolumeMount())
+	return container
+}
+
+func patchContainer(container corev1.Container, index int) commons.PatchOperation {
+	return commons.PatchOperation{
+		Op:    "replace",
+		Path:  fmt.Sprintf("/spec/containers/%d", index),
+		Value: mutateContainer(container),
+	}
+}
+
+func getContainerByName(containers []corev1.Container, name string) (corev1.Container, int, error) {
+	for i:=0; i<len(containers); i++ {
+		if containers[i].Name == name {
+			return containers[i], i, nil
+		}
+	}
+	return corev1.Container{}, -1, errors.New("No container with name" + name)
+}
+
+func patchVaultInitContainer(team string) ([]commons.PatchOperation, error) {
+	return []commons.PatchOperation{
+		{
+			Op:    "add",
+			Path:  "/spec/volumes/-",
+			Value: vault.GetVolume(),
+		},
+		{
+			Op:    "add",
+			Path:  "/spec/initContainers",
+			Value: []corev1.Container{vault.GetInitContainer(team)},
+		},
+	}, nil
+}
+
 func patchImagePullSecrets() commons.PatchOperation {
 	return commons.PatchOperation{
 		Op:    "add",
@@ -24,6 +64,18 @@ func patchImagePullSecrets() commons.PatchOperation {
 
 func createPatch(pod *corev1.Pod, team string) ([]byte, error) {
 	var patch []commons.PatchOperation
+	vaultPatches, err := patchVaultInitContainer(team)
+	if err != nil {
+		return nil, err
+	}
+	patch = append(patch, vaultPatches...)
+
+	mainContainer, index, err := getContainerByName(pod.Spec.Containers, "main")
+	if err != nil {
+		return nil, err
+	}
+	patch = append(patch, patchContainer(mainContainer, index))
+
 	patch = append(patch, patchImagePullSecrets())
 	patch = append(patch, commons.PatchStatusAnnotation(pod.Annotations))
 	return json.Marshal(patch)

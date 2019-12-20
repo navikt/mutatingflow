@@ -1,6 +1,7 @@
 package commons
 
 import (
+	log "github.com/sirupsen/logrus"
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -60,10 +61,13 @@ func MutationRequired(metadata metav1.ObjectMeta, annotation string) bool {
 		return false
 	}
 
+	log.Infof("Pod: Annotations %s", annotations):q
+
+
 	status := annotations[StatusKey]
 	if strings.ToLower(status) == "injected" {
 		return false
 	}
 
-	return false
+	return true
 }
