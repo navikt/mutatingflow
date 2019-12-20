@@ -33,7 +33,6 @@ func run() error {
 	flag.StringVar(&parameters.KeyFile, "key", "./key.pem", "File containing the x509 private key to --tlsCertFile.")
 	flag.StringVar(&parameters.LogFormat, "log-format", "text", "Log format, either 'json' or 'text'")
 	flag.StringVar(&parameters.LogLevel, "log-level", "info", "Logging verbosity level")
-	flag.StringVar(&parameters.Teams, "teams", "kubeflow", "Kubeflow team names")
 	flag.Parse()
 
 	switch parameters.LogFormat {
