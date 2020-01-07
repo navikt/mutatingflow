@@ -65,5 +65,5 @@ func MutationRequired(metadata metav1.ObjectMeta, annotation string) bool {
 		return false
 	}
 
-	return false
+	return true
 }
