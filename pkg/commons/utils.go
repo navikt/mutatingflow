@@ -82,13 +82,12 @@ func MutationRequired(metadata metav1.ObjectMeta, label string) bool {
 	}
 
 	_, ok := labels[label]
-
-	status := annotations[StatusKey]
-	if strings.ToLower(status) == "injected" {
+	if !ok {
 		return false
 	}
 
-	if !ok {
+	status := annotations[StatusKey]
+	if strings.ToLower(status) == "injected" {
 		return false
 	}
 
