@@ -75,20 +75,21 @@ func PatchStatusAnnotation(target map[string]string) PatchOperation {
 }
 
 // MutationRequired will only modify pods with the annotation
-func MutationRequired(metadata metav1.ObjectMeta, annotation string) bool {
+func MutationRequired(metadata metav1.ObjectMeta, label string) bool {
 	annotations := metadata.GetAnnotations()
-	if annotations == nil {
+	labels := metadata.GetLabels()
+	if labels == nil {
 		return true
 	}
 
-	log.Infof("Pod: Annotations %s", annotations)
+	log.Infof("Pod: Labels %s", labels)
 
-	_, ok := annotations[annotation]
+	_, ok := labels[label]
 	if !ok {
 		return false
 	}
 
-	log.Infof("Pod: Annotations %s", annotations)
+	log.Infof("Pod: Labels %s", labels)
 
 	status := annotations[StatusKey]
 	if strings.ToLower(status) == "injected" {
