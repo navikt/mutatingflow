@@ -82,6 +82,7 @@ func MutationRequired(metadata metav1.ObjectMeta, label string) bool {
 		return true
 	}
 
+	log.Infof("Pod: Label %s", label)
 	log.Infof("Pod: Labels %s", labels)
 
 	_, ok := labels[label]
