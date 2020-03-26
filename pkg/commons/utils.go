@@ -1,6 +1,7 @@
 package commons
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -8,6 +9,14 @@ import (
 
 const (
 	StatusKey = "mutatingflow.nais.io/status"
+)
+
+var (
+	proxyEnvs = map[string]string{
+		"NO_PROXY":    "localhost,127.0.0.1,10.254.0.1,.local,.adeo.no,.nav.no,.aetat.no,.devillo.no,.oera.no,.nais.io",
+		"HTTP_PROXY":  "http://webproxy.nais:8088",
+		"HTTPS_PROXY": "http://webproxy.nais:8088",
+	}
 )
 
 type Parameters struct {
@@ -21,6 +30,22 @@ type PatchOperation struct {
 	Op    string      `json:"op"`
 	Path  string      `json:"path"`
 	Value interface{} `json:"value,omitempty"`
+}
+
+func createEnvVars(envs map[string]string) []corev1.EnvVar {
+	var envVars []corev1.EnvVar
+	for key, value := range envs {
+		envVars = append(envVars,
+			corev1.EnvVar{
+				Name:  key,
+				Value: value,
+			})
+	}
+	return envVars
+}
+
+func GetProxyEnvVars() []corev1.EnvVar {
+	return createEnvVars(proxyEnvs)
 }
 
 func PatchStatusAnnotation(target map[string]string) PatchOperation {

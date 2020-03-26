@@ -16,9 +16,13 @@ var (
 )
 
 func mutatePodSpec(spec corev1.PodSpec) corev1.PodSpec {
+	container := spec.Containers[0]
+	container.Env = append(container.Env, commons.GetProxyEnvVars()...)
+
 	spec.ImagePullSecrets = []corev1.LocalObjectReference{
 		{Name: "gpr-credentials"},
 	}
+
 	return spec
 }
 
