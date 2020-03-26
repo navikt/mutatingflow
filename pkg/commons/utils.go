@@ -91,6 +91,7 @@ func MutationRequired(metadata metav1.ObjectMeta, label string) bool {
 	}
 
 	log.Infof("Pod: Labels %s", labels)
+	log.Infof("Pod: Annotations %s", annotations)
 
 	status := annotations[StatusKey]
 	if strings.ToLower(status) == "injected" {
