@@ -13,12 +13,13 @@ import (
 )
 
 var (
-	// workflowArgoAnnotation is the annotation we use to check if a pod is of the workflow-pipeline type
-	workflowArgoAnnotation = "workflows.argoproj.io/node-name"
+	// notebookNameLabel is the label we use to check if a pod is of the notebook type
+	notebookNameLabel = "notebook-name"
 )
 
 func mutateContainer(container corev1.Container) corev1.Container {
 	container.VolumeMounts = append(container.VolumeMounts, vault.GetVolumeMount())
+	container.Env = append(container.Env, commons.GetProxyEnvVars()...)
 	return container
 }
 
@@ -36,7 +37,7 @@ func getContainerByName(containers []corev1.Container, name string) (corev1.Cont
 			return containers[i], i, nil
 		}
 	}
-	return corev1.Container{}, -1, errors.New("No container with name" + name)
+	return corev1.Container{}, -1, errors.New("No container with name " + name)
 }
 
 func patchVaultInitContainer(team string) ([]commons.PatchOperation, error) {
@@ -70,7 +71,7 @@ func createPatch(pod *corev1.Pod, team string) ([]byte, error) {
 	}
 	patch = append(patch, vaultPatches...)
 
-	mainContainer, index, err := getContainerByName(pod.Spec.Containers, "main")
+	mainContainer, index, err := getContainerByName(pod.Spec.Containers, pod.ObjectMeta.GetLabels()["app"])
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +97,7 @@ func MutatePod(request *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
 
 	log.Infof("Pod: Namespace=%v Name=%v (%v) patchOperation=%v", request.Namespace, request.Name, pod.Name, request.Operation)
 
-	if !commons.MutationRequired(pod.ObjectMeta, workflowArgoAnnotation) {
+	if !commons.MutationRequired(pod.ObjectMeta, notebookNameLabel) {
 		log.Infof("Pod: Skipping mutation for %s/%s due to policy check", pod.Namespace, pod.Name)
 		return &v1beta1.AdmissionResponse{
 			Allowed: true,

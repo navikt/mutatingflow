@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	// notebookNameAnnotation is the annotation we use to check if a pod is of the notebook type
-	notebookNameAnnotation = "notebook-name"
+	// notebookNameLabel is the label we use to check if a pod is of the notebook type
+	notebookNameLabel = "notebook-name"
 )
 
 func mutatePodSpec(spec corev1.PodSpec) corev1.PodSpec {
@@ -23,7 +23,6 @@ func mutatePodSpec(spec corev1.PodSpec) corev1.PodSpec {
 	spec.ImagePullSecrets = []corev1.LocalObjectReference{
 		{Name: "gpr-credentials"},
 	}
-
 	return spec
 }
 
@@ -57,7 +56,7 @@ func MutateNotebook(request v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse
 
 	log.Infof("Notebook: Namespace=%v Name=%v (%v) patchOperation=%v", request.Namespace, request.Name, notebook.Name, request.Operation)
 
-	if !commons.MutationRequired(notebook.ObjectMeta, notebookNameAnnotation) {
+	if !commons.MutationRequired(notebook.ObjectMeta, notebookNameLabel) {
 		log.Infof("Notebook: Skipping mutation for %s/%s due to policy check", notebook.Namespace, notebook.Name)
 		return &v1beta1.AdmissionResponse{
 			Allowed: true,
