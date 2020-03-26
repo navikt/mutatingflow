@@ -28,6 +28,8 @@ type WebhookServer struct {
 func (server *WebhookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 	request := ar.Request
 
+	log.Infof("Resource: Kind %s", request.Kind.Kind)
+
 	switch request.Kind.Kind {
 	case "Notebook":
 		return notebooks.MutateNotebook(*request)

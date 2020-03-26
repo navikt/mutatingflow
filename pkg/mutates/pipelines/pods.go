@@ -19,6 +19,7 @@ var (
 
 func mutateContainer(container corev1.Container) corev1.Container {
 	container.VolumeMounts = append(container.VolumeMounts, vault.GetVolumeMount())
+	container.Env = append(container.Env, commons.GetProxyEnvVars()...)
 	return container
 }
 
@@ -61,6 +62,7 @@ func patchImagePullSecrets() commons.PatchOperation {
 		Value: []corev1.LocalObjectReference{{Name: "gpr-credentials"}},
 	}
 }
+
 
 func createPatch(pod *corev1.Pod, team string) ([]byte, error) {
 	var patch []commons.PatchOperation
