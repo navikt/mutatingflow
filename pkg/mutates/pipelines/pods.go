@@ -36,7 +36,7 @@ func getContainerByName(containers []corev1.Container, name string) (corev1.Cont
 			return containers[i], i, nil
 		}
 	}
-	return corev1.Container{}, -1, errors.New("No container with name" + name)
+	return corev1.Container{}, -1, errors.New("No container with name " + name)
 }
 
 func patchVaultInitContainer(team string) ([]commons.PatchOperation, error) {
@@ -70,7 +70,7 @@ func createPatch(pod *corev1.Pod, team string) ([]byte, error) {
 	}
 	patch = append(patch, vaultPatches...)
 
-	mainContainer, index, err := getContainerByName(pod.Spec.Containers, "main")
+	mainContainer, index, err := getContainerByName(pod.Spec.Containers, pod.ObjectMeta.GetLabels()["app"])
 	if err != nil {
 		return nil, err
 	}
