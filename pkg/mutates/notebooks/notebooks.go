@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	// notebookNameAnnotation is the annotation we use to check if a pod is of the notebook type
+	// notebookNameLabel is the label we use to check if a pod is of the notebook type
 	notebookNameLabel = "notebook-name"
 )
 

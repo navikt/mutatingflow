@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	// workflowArgoAnnotation is the annotation we use to check if a pod is of the workflow-pipeline type
-	workflowArgoAnnotation = "workflows.argoproj.io/node-name"
+	// notebookNameLabel is the label we use to check if a pod is of the notebook type
+	notebookNameLabel = "notebook-name"
 )
 
 func mutateContainer(container corev1.Container) corev1.Container {
@@ -96,7 +96,7 @@ func MutatePod(request *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
 
 	log.Infof("Pod: Namespace=%v Name=%v (%v) patchOperation=%v", request.Namespace, request.Name, pod.Name, request.Operation)
 
-	if !commons.MutationRequired(pod.ObjectMeta, workflowArgoAnnotation) {
+	if !commons.MutationRequired(pod.ObjectMeta, notebookNameLabel) {
 		log.Infof("Pod: Skipping mutation for %s/%s due to policy check", pod.Namespace, pod.Name)
 		return &v1beta1.AdmissionResponse{
 			Allowed: true,
